@@ -23,11 +23,39 @@ File: yolov3-video-detection.py
 
 
 # Importing needed libraries
+import math
+
+import numpy
 import numpy as np
 import cv2
 import time
+import imutils
+# from speed_tracking.sort import *
+
+import pandas
 
 print(cv2.__version__)
+
+pixels_per_meter = 6
+
+# Ham tinh toan toc do
+def calculate_speed(startPosition, currentPosition, fps):
+    global pixels_per_meter
+
+    # Tinh toan khoang cach di chuyen theo pixel
+    distance_in_pixels = math.sqrt(
+        math.pow(currentPosition[0] - startPosition[0], 2) + math.pow(currentPosition[1] - startPosition[1], 2))
+
+    # Tinh toan khoang cach di chuyen bang met
+    distance_in_meters = distance_in_pixels / pixels_per_meter
+
+    # Tinh toc do met tren giay
+    speed_in_meter_per_second = distance_in_meters * fps
+    # Quy doi sang km/h
+    speed_in_kilometer_per_hour = speed_in_meter_per_second * 3.6
+
+    return speed_in_kilometer_per_hour
+
 
 """
 ==================     STEP1   ===================
@@ -35,13 +63,30 @@ Start of: Reading input video
 """
 # NOTE:
 # Defining 'VideoCapture' object and reading video from a file make sure that the path and file name is correct
-video = cv2.VideoCapture("video.mp4")
+video = cv2.VideoCapture("highway.mp4")
+
+# try to determine the total number of frames in the video file
+try:
+    prop = cv2.cv.CV_CAP_PROP_FRAME_COUNT if imutils.is_cv2() \
+        else cv2.CAP_PROP_FRAME_COUNT
+    total = int(video.get(prop))
+    print("[INFO] {} total frames in video".format(total))
+
+# an error occurred while trying to determine the total
+# number of frames in the video file
+except:
+    print("[INFO] could not determine # of frames in video")
+    print("[INFO] no approx. completion time can be provided")
+    total = -1
 
 # Preparing variable for writer that we will use to write processed frames
 writer = None
 
 # Preparing variables for spatial dimensions of the frames
 h, w = None, None
+
+# create tracking
+# tracker = Sort()
 
 """
 End of:
@@ -76,8 +121,7 @@ layers_names_all = network.getLayerNames()
 
 # Getting only output layers' names that we need from YOLO v3 algorithm
 # with function that returns indexes of layers with unconnected outputs
-layers_names_output = \
-    [layers_names_all[i[0] - 1] for i in network.getUnconnectedOutLayers()]
+layers_names_output = [layers_names_all[i - 1] for i in network.getUnconnectedOutLayers()]
 
 # # Check point
 # print()
@@ -113,7 +157,8 @@ f = 0
 
 # Defining variable for counting total time At the end we will show time spent for processing all frames
 t = 0
-
+# Data export
+data_export = []
 # Defining loop for catching frames
 while True:
     # Capturing frame-by-frame
@@ -183,6 +228,8 @@ while True:
     bounding_boxes = []
     confidences = []
     classIDs = []
+    carPrePosition = []
+    carCurrentPosition = []
 
     # Going through all output layers after feed forward pass
     for result in output_from_network:
@@ -221,6 +268,7 @@ while True:
                 confidences.append(float(confidence_current))
                 classIDs.append(class_current)
 
+        print("boxes_length", len(bounding_boxes))
         """	
         End of: Getting bounding boxes
         """
@@ -269,13 +317,25 @@ while True:
                           (x_min + box_width, y_min + box_height),
                           colour_box_current, 2)
 
+            # calculate speed
+
+            # [x1, y1, h1, w1] = carPrePosition[i]
+            # [x2, y2, h2, w2] = bounding_boxes[i]
+            #
+            # speed_current = calculate_speed([x1, y1, h1, w1], [x2, y2, h2, w2], 30)
+
             # Preparing text with label and confidence for current bounding box
             text_box_current = '{}: {:.4f}'.format(labels[int(classIDs[i])],
-                                                   confidences[i])
+                                                   i)
 
-            # Putting text with label and confidence on the original image
+            data_export.append([f, i, labels[int(classIDs[i])], confidences[i], bounding_boxes[i],
+
+                                len(bounding_boxes)])
+
+
             cv2.putText(frame, text_box_current, (x_min, y_min - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, colour_box_current, 2)
+        print(data_export)
 
     """
     End of:
@@ -294,7 +354,7 @@ while True:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
         # Writing current processed frame into the video file
-        writer = cv2.VideoWriter('result-traffic-cars.mp4', fourcc, 30,
+        writer = cv2.VideoWriter('result-highway.mp4', fourcc, 30,
                                  (frame.shape[1], frame.shape[0]), True)
 
     # Write processed current frame to the file
@@ -318,6 +378,9 @@ print('FPS:', round((f / t), 1))
 video.release()
 writer.release()
 
+# Save data to csv
+data_frame = pandas.DataFrame(data_export)
+data_frame.to_csv("highway.csv")
 """
 Some comments
 What is a FOURCC?
