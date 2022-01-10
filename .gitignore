@@ -1,0 +1,4 @@
+.venv
+.idea
+test_video/20km.mp4
+yolov3.weights
