@@ -3,18 +3,36 @@ import dlib
 import math
 import time
 import numpy as np
+from imutils.video import FPS
+import imutils
 
 # car_detect = cv2.CascadeClassifier('car_detect_harrcascade.xml')
-video = cv2.VideoCapture('highway.mp4')
+video = cv2.VideoCapture('test_video/30km2.mp4')
+
+fs = video.get(cv2.CAP_PROP_FPS)
+
+writer = None
+(W, H) = (None, None)
+
+# try to determine the total number of frames in the video file
+try:
+    prop = cv2.cv.CV_CAP_PROP_FRAME_COUNT if imutils.is_cv2() \
+        else cv2.CAP_PROP_FRAME_COUNT
+    total = int(video.get(prop))
+    print("[INFO] {} total frames in video".format(total))
+
+# an error occurred while trying to determine the total
+# number of frames in the video file
+except:
+    print("[INFO] could not determine # of frames in video")
+    print("[INFO] no approx. completion time can be provided")
+    total = -1
 
 
 # Dinh nghia cac tham so dai , rong
 f_width = 1280
 f_height = 720
 
-line1 = np.array([(665,2), (663, 719)])
-line2 = np.array([(712,3), (1071,719)])
-line3 = np.array([(617,3), (257,719)])
 # Cai dat tham so : so diem anh / 1 met, o day dang de 1 pixel = 1 met
 pixels_per_meter = 6
 
@@ -72,7 +90,7 @@ def calculate_speed(startPosition, currentPosition, fps):
 def get_output_layers(net):
     layer_names = net.getLayerNames()
 
-    output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 
     return output_layers
 
@@ -112,7 +130,7 @@ def get_object(weights,config,image,):
 	indices = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)
 	selectbox= []
 	for i in indices:
-		i = i[0]
+		# i = i[0]
 		
 		box = boxes[i]
 		x = box[0]
@@ -125,28 +143,18 @@ def get_object(weights,config,image,):
 while True:
 	start_time = time.time()
 	_, image = video.read()
-
-	lane3 = np.array([[[997,0], [1068,0], [1607,1080], [995, 1080]]], np.int32)
-	lane2 = np.array([[[926,0], [997,0], [995, 1080], [386,1080]]], np.int32)
-	lane1 = np.array([[[870,0], [926,0], [386,1080], [0,836]]], np.int32)
-	lane4 = np.array([[[1068,0], [1155,0], [1920,711], [1607,1080]]], np.int32)
-	cv2.polylines(image, [lane1], True, (0,255,0), thickness=1)
-	cv2.polylines(image, [lane2], True, (0,0,255), thickness=1)
-	cv2.polylines(image, [lane3], True, (0,255,0), thickness=1)
-	cv2.polylines(image, [lane4], True, (0,0,255), thickness=1)
-
 	
 	if image is None:
 		break
 
-	# image = cv2.resize(image, (f_width, f_height))
+	image = cv2.resize(image, (f_width, f_height))
 	output_image = image.copy()
 
 	frame_idx += 1
 	remove_bad_tracker()
 
  	# Thuc hien detect moi 10 frame
-	if not (frame_idx % 10):
+	if not (frame_idx % 30):
 
 		# Thuc hien detect car trong hinh
 		# gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -211,46 +219,50 @@ while True:
 
 	# Lap qua cac xe da track va tinh toan toc do
 	for i in carStartPosition.keys():
-			[x1, y1, w1, h1] = carStartPosition[i]
-			[x2, y2, w2, h2] = carCurrentPosition[i]
-			p0 = (int(x2 + (w2-x2)/2), int(y2 + (h2-y2)/2))
-			ct1 = cv2.pointPolygonTest(lane1, p0, False)
-			ct2 = cv2.pointPolygonTest(lane2, p0, False)
-			ct3 = cv2.pointPolygonTest(lane3, p0, False)
-			ct4 = cv2.pointPolygonTest(lane4, p0, False)
-				
-			color = (255,0,0) if ct1==1 else (0,255,0) if ct2==1 else (255,0,255) if ct3==1 else (0,255,255) if ct4==1 else (0,0,255)
-			cv2.rectangle(image, (x2, y2), (w2, h), color, 4)
-			carStartPosition[i] = [x2, y2, w2, h2]
-			
-			# Neu xe co di chuyen thi
-			if [x1, y1, w1, h1] != [x2, y2, w2, h2]:
-				# Neu nhu chua tinh toan toc do va toa do hien tai < 200 thi tinh toan toc do
-				if (speed[i] is None or speed[i] == 0) and y2<200:
-					speed[i] = calculate_speed([x1, y1, w1, h1], [x2, y2, w2, h2],fps)
+		[x1, y1, w1, h1] = carStartPosition[i]
+		[x2, y2, w2, h2] = carCurrentPosition[i]
+		p0 = (int(x2 + (w2-x2)/2), int(y2 + (h2-y2)/2))
 
-				# Neu nhu da tinh toc do va xe da vuot qua tung do 200 thi hien thi tong do
-				if speed[i] is not None and y2 >= 200:
-					if speed[i] > 80:
-				  		cv2.putText(output_image, str (int(speed[i])-80) + " km/h vuot qua",
-				   				(x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 1,
-				   				(0, 0, 255), 2)
-						# cv2.putText(output_image, str (int(carID[i]))
-						# 		(x2,  y2),cv2.FONT_HERSHEY_SIMPLEX, 1,
-						# 		(0, 255, 255), 2)
-					if speed[i] < 80:			   
-						cv2.putText(output_image, str (int(speed[i])) + " km/h",
-								(x2+w2,  y2),cv2.FONT_HERSHEY_SIMPLEX, 1,
-								(0, 255, 255), 2)
-				# if speed[i] >= 80:
-				#   	cv2.putText(output_image, str(int(speed[i])) + " km/h LIMIT",
-				#    				(x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 1,
-				#    				(0, 0, 255), 2) 
+		carStartPosition[i] = [x2, y2, w2, h2]
+		
+		# Neu xe co di chuyen thi
+		if [x1, y1, w1, h1] != [x2, y2, w2, h2]:
+			# Neu nhu chua tinh toan toc do va toa do hien tai < 200 thi tinh toan toc do
+			if (speed[i] is None or speed[i] == 0):
+				speed[i] = calculate_speed([x1, y1, w1, h1], [x2, y2, w2, h2], fs)
 
+			# Neu nhu da tinh toc do va xe da vuot qua tung do 200 thi hien thi tong do
+			if speed[i] is not None and speed[i] > 0.0:
+				# if speed[i] > 80:
+				# 	cv2.putText(output_image, str (int(speed[i])-80) + " km/h vuot qua",
+				# 			(x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 1,
+				# 			(0, 0, 255), 2)
+				# else:			   
+				cv2.putText(output_image, str (int(speed[i])) + " km/h",
+						(x2+w2,  y2),cv2.FONT_HERSHEY_SIMPLEX, 1,
+						(0, 255, 255), 2)
+			# if speed[i] >= 80:
+			#   	cv2.putText(output_image, str(int(speed[i])) + " km/h LIMIT",
+			#    				(x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 1,
+			#    				(0, 0, 255), 2) 
+			print("car key: ",i,"speed",speed[i],"fs: ", fs)
+	if writer is None:
+		fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+		writer = cv2.VideoWriter('result-highway.mp4', fourcc, 30,
+                                 (output_image.shape[1], output_image.shape[0]), True)
+		writer.write(output_image)
     	
 	cv2.imshow('video', output_image)
 	#Detect phim Q
 	if cv2.waitKey(1) == ord('q'):
 		break
+
+	# fps.update()
+
+# fps.stop()
+
+print("[INFO] totalFrame: {:.2f}".format(frame_idx))
+# print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+print("[INFO] approx. FPS: {:.2f}".format(fps))
 
 cv2.destroyAllWindows()
