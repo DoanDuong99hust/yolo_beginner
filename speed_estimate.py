@@ -39,7 +39,7 @@ import os
 # speed estimation
 def estimateSpeed(location1, location2, ppm, fs):
     d_pixels = math.sqrt(math.pow(location2[0] - location1[0], 2) + math.pow(location2[1] - location1[1], 2))
-    d_meters = d_pixels / ppm
+    d_meters = d_pixels * ppm
     speed = d_meters * fs * 3.6
     return speed
 
@@ -76,7 +76,7 @@ ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
 # else:
 #     print("[INFO] opening video file...")
 #     vs = cv2.VideoCapture(args["input"])
-vs = cv2.VideoCapture("20km.mp4")
+vs = cv2.VideoCapture("test_video/20km.mp4")
 fs = vs.get(cv2.CAP_PROP_FPS)
 
 writer = None
@@ -131,7 +131,7 @@ while True:
     rects = []
 
     # Check to see if we should run a more detection method to aid our tracker
-    if totalFrames % 10 == 0:
+    if totalFrames % 50 == 0:
         # set the status and init our new set of object trackers
         status = "Detecting"
         trackers = []
@@ -193,7 +193,7 @@ while True:
                 trackers.append(tracker)
 
     # otherwise, we should use object trackers to estimate speed and obtain a higher frame processing
-    else:
+    elif totalFrames > 200:
         # loop over the trackers
         for tracker in trackers:
             # set the status
@@ -238,7 +238,7 @@ while True:
             to.centroids.append(centroid)
             location1 = to.centroids[-2]
             location2 = to.centroids[-1]
-            speed = estimateSpeed(location1, location2, 6.0, fs)
+            speed = estimateSpeed(location1, location2, 0.05, fs)
         trackableOjects[objectID] = to
         text_box_current = '{}: {:.4f}'.format(LABELS[int(objectID)],
                                                speed)
@@ -251,11 +251,11 @@ while True:
         # print(data_export)
         # "{:.1f} km/h".format(speed)
         if 0 < speed <= 20.0:
-            cv2.putText(frame, text_box_current,
+            cv2.putText(frame, "{:.1f} km/h".format(speed),
                         (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                         (0, 255, 0), 2)
         elif speed > 20.0:
-            cv2.putText(frame,  text_box_current,
+            cv2.putText(frame, "{:.1f} km/h".format(speed),
                         (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                         (0, 0, 255), 2)
         else:
@@ -275,7 +275,7 @@ while True:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
         # Writing current processed frame into the video file
-        writer = cv2.VideoWriter('result-20km.mp4', fourcc, 30,
+        writer = cv2.VideoWriter('result-video.mp4', fourcc, 30,
                                  (frame.shape[1], frame.shape[0]), True)
     # Write processed current frame to the file
     writer.write(frame)
@@ -297,6 +297,6 @@ print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 # Save data to csv
 data_frame = pandas.DataFrame(data_export)
-data_frame.to_csv("20km.csv")
+data_frame.to_csv("video.csv")
 
 cv2.destroyAllWindows()

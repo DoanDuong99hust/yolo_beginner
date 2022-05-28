@@ -63,7 +63,7 @@ Start of: Reading input video
 """
 # NOTE:
 # Defining 'VideoCapture' object and reading video from a file make sure that the path and file name is correct
-video = cv2.VideoCapture("highway.mp4")
+video = cv2.VideoCapture("test_video/20km.mp4")
 
 # try to determine the total number of frames in the video file
 try:
@@ -268,7 +268,7 @@ while True:
                 confidences.append(float(confidence_current))
                 classIDs.append(class_current)
 
-        print("boxes_length", len(bounding_boxes))
+        # print("boxes_length", len(bounding_boxes))
         """	
         End of: Getting bounding boxes
         """
@@ -326,7 +326,7 @@ while True:
 
             # Preparing text with label and confidence for current bounding box
             text_box_current = '{}: {:.4f}'.format(labels[int(classIDs[i])],
-                                                   i)
+                                                   confidences[i])
 
             data_export.append([f, i, labels[int(classIDs[i])], confidences[i], bounding_boxes[i],
 
@@ -354,11 +354,17 @@ while True:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
         # Writing current processed frame into the video file
-        writer = cv2.VideoWriter('result-highway.mp4', fourcc, 30,
+        writer = cv2.VideoWriter('result-detect-20km.mp4', fourcc, 30,
                                  (frame.shape[1], frame.shape[0]), True)
 
     # Write processed current frame to the file
     writer.write(frame)
+
+    cv2.imshow("Frame", frame)
+    key = cv2.waitKey(1) & 0xFF
+
+    if key == ord("q"):
+        break
 
 """
 End of: Writing processed frame into the file
@@ -379,8 +385,8 @@ video.release()
 writer.release()
 
 # Save data to csv
-data_frame = pandas.DataFrame(data_export)
-data_frame.to_csv("highway.csv")
+# data_frame = pandas.DataFrame(data_export)
+# data_frame.to_csv("20km.csv")
 """
 Some comments
 What is a FOURCC?
