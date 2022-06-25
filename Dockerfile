@@ -70,7 +70,7 @@ RUN pip install imutils
 RUN (apt-get autoremove -y; \
      apt-get autoclean -y)
 
-EXPOSE 8008
+EXPOSE 8080
 
 ENTRYPOINT [ "python3.7" ]
 

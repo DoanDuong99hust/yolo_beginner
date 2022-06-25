@@ -41,8 +41,8 @@ print(cv2.__version__)
 
 app = Flask(__name__)
 
-@app.route('/', methods=['POST', 'GET'])
-def detection():
+@app.route('/<path:videoPath>', methods=['POST', 'GET'])
+def detection(videoPath):
     app.logger.warning(request.data)
     # Respond with another event (optional)
     response = make_response({
@@ -57,7 +57,7 @@ def detection():
 
     # NOTE:
     # Defining 'VideoCapture' object and reading video from a file make sure that the path and file name is correct
-    video = cv2.VideoCapture("test_video/highway.mp4")
+    video = cv2.VideoCapture(videoPath)
 
     # try to determine the total number of frames in the video file
     try:
@@ -237,4 +237,4 @@ def detection():
 # data_frame = pandas.DataFrame(data_export)
 # data_frame.to_csv("20km.csv")
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8008)
+    app.run(debug=True, host='0.0.0.0', port=8080)
