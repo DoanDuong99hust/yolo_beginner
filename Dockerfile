@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu@sha256:0f744430d9643a0ec647a4addcac14b1fbb11424be434165c15e2cc7269f70f8
 RUN mkdir /lab
 WORKDIR /lab
 COPY . /lab
@@ -19,7 +19,7 @@ RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y python3
  libavformat-dev \ 
  libswscale-dev \ 
  libtbb2 \
- libtbb-dev \ 
+ libtbb-dev \
  libjpeg-dev \
  libpng-dev \
  libtiff-dev \
