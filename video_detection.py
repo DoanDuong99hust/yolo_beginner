@@ -43,10 +43,11 @@ app = Flask(__name__)
 
 @app.route('/<path:videoPath>', methods=['POST', 'GET'])
 def detection(videoPath):
+    print(videoPath)
     app.logger.warning(request.data)
     # Respond with another event (optional)
     response = make_response({
-        "msg": "Hi from video-detection-python app!"
+        "msg": "Hi from video-detection-python app! Video path : {}".format(str(videoPath))
     })
     response.headers["Ce-Id"] = str(uuid.uuid4())
     response.headers["Ce-specversion"] = "0.3"
