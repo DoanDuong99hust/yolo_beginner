@@ -5,11 +5,23 @@ COPY . /lab
 # Install system packages (python 3.5)
 RUN apt-get -y update
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
-RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y python3.7 \ 
+
+RUN apt-get update -y
+#RUN apt-get -qq install --no-install-recommends -y python3
+#RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y wget vim 
+#RUN apt-get install build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev -y
+#RUN wget --no-check-certificate https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+#RUN tar xf Python-3.7.0.tar.xz
+#RUN cd Python-3.7.0 && ./configure && make -j 4 && make altinstall
+#RUN cd .. && rm Python-3.7.0.tar.xz
+#RUN sudo apt-get --purge remove build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev -y
+#RUN sudo apt-get autoremove -y
+#RUN sudo apt-get clean
+ RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y python3 \ 
  python3-dev \
- python-pil \
- python-lxml \
- python-tk \
+# python-pil \
+# python-lxml \
+# python-tk \
  build-essential \
  cmake \ 
  git \ 
@@ -23,7 +35,7 @@ RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y python3
  libjpeg-dev \
  libpng-dev \
  libtiff-dev \
- libdc1394-22-dev \
+# libdc1394-22-dev \
  x11-apps \
  wget \
  vim \
@@ -33,8 +45,12 @@ RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y python3
  && rm -rf /var/lib/apt/lists/* 
 
 # Install core packages (TF v1.15.2)
-RUN wget -q -O /tmp/get-pip.py --no-check-certificate https://bootstrap.pypa.io/get-pip.py && python3.7 /tmp/get-pip.py
-RUN  pip install -U pip \
+ RUN wget -q -O /tmp/get-pip.py --no-check-certificate https://bootstrap.pypa.io/get-pip.py && python3 /tmp/get-pip.py
+#RUN apt-get -qq install --no-install-recommends -y python3 \
+#libqtgui4 \
+#libqt4-test
+
+RUN pip install -U pip \
  numpy \
  matplotlib \
  notebook \
@@ -72,6 +88,6 @@ RUN (apt-get autoremove -y; \
 
 EXPOSE 8080
 
-ENTRYPOINT [ "python3.7" ]
+ENTRYPOINT [ "python3" ]
 
 CMD ["video_detection.py"]
