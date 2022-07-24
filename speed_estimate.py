@@ -39,7 +39,7 @@ import os
 # speed estimation
 def estimateSpeed(location1, location2, ppm, fs):
     d_pixels = math.sqrt(math.pow(location2[0] - location1[0], 2) + math.pow(location2[1] - location1[1], 2))
-    d_meters = d_pixels / ppm
+    d_meters = (d_pixels/10) / ppm
     speed = d_meters * fs * 3.6
     return speed
 
@@ -76,7 +76,7 @@ ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
 # else:
 #     print("[INFO] opening video file...")
 #     vs = cv2.VideoCapture(args["input"])
-vs = cv2.VideoCapture("20km.mp4")
+vs = cv2.VideoCapture("test_video/30km2.mp4")
 fs = vs.get(cv2.CAP_PROP_FPS)
 
 writer = None
@@ -114,17 +114,12 @@ while True:
         break
 
     # resize the frame to have maximum width of 500 pixels
-    frame = imutils.resize(frame, width=500)
+    frame = imutils.resize(frame, width=1080)
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # if the frame dimensions are empty, set them
     if W is None or H is None:
         (H, W) = frame.shape[:2]
-    #
-    # # init a writer to write video to disk
-    # if args["output"] is not None and writer is None:
-    #     fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-    #     writer = cv2.VideoWriter(args["output"], fourcc, 30, (W, H), True)
 
     # init the status for detecting or tracking
     status = "Waiting"
@@ -220,65 +215,61 @@ while True:
             # add the bbox coordinates to the rectangles list
             rects.append((startX, startY, endX, endY))
 
-    # use the centroid tracker to associate the object 1 and object 2
-    objects = ct.update(rects)
-    # loop over the tracked objects
-    speed = 0
-    for (objectID, centroid) in objects.items():
-        # init speed array
-        # speed = 0
-        # check to see if a tracktable object exists for the current objectID
-        to = trackableOjects.get(objectID, None)
+        # use the centroid tracker to associate the object 1 and object 2
+        objects = ct.update(rects)
+        # loop over the tracked objects
+        speed = 0
+        for (objectID, centroid) in objects.items():
+            # init speed array
+            # speed = 0
+            # check to see if a tracktable object exists for the current objectID
+            to = trackableOjects.get(objectID, None)
 
-        # if there is no tracktable object, create one
-        if to is None:
-            to = TrackableObject(objectID, centroid)
-        # otherwise, use it for speed estimation
-        else:
-            to.centroids.append(centroid)
-            location1 = to.centroids[-2]
-            location2 = to.centroids[-1]
-            speed = estimateSpeed(location1, location2, 6.0, fs)
-        trackableOjects[objectID] = to
-        text_box_current = '{}: {:.4f}'.format(LABELS[int(objectID)],
-                                               speed)
+            # if there is no tracktable object, create one
+            if to is None:
+                to = TrackableObject(objectID, centroid)
+            # otherwise, use it for speed estimation
+            else:
+                to.centroids.append(centroid)
+                location1 = to.centroids[-2]
+                location2 = to.centroids[-1]
+                speed = estimateSpeed(location1, location2, ppm, fs)
+            trackableOjects[objectID] = to
+            text_box_current = '{}: {:.4f}'.format(LABELS[int(objectID)],
+                                                    speed)
 
-        print("speed: ", speed, "ppm: ", ppm, "fs: ", fs)
-        # print(len(confidences))
-        # print("objectID", objectID, "LABELS[int(classIDs[objectID])]", LABELS[int(classIDs[objectID])]
-        #       , "confidences[objectID]", confidences[objectID])
-        data_export.append([totalFrames, objectID, len(confidences), speed])
-        # print(data_export)
-        # "{:.1f} km/h".format(speed)
-        if 0 < speed <= 20.0:
-            cv2.putText(frame, text_box_current,
-                        (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                        (0, 255, 0), 2)
-        elif speed > 20.0:
-            cv2.putText(frame,  text_box_current,
-                        (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                        (0, 0, 255), 2)
-        else:
-            break
-        # elif speed != 0 and speed >= 30.0:
-        #     cv2.putText(frame, "{:.1f} km/h".format(speed),
-        #                 (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-        #                 (0, 0, 255), 2)
+            print("speed: ", speed, "ppm: ", 20, "fs: ", fs)
+            # print(len(confidences))
+            # print("objectID", objectID, "LABELS[int(classIDs[objectID])]", LABELS[int(classIDs[objectID])]
+            #       , "confidences[objectID]", confidences[objectID])
+            # data_export.append([totalFrames, objectID, len(confidences), speed])
+            # print(data_export)
+            # "{:.1f} km/h".format(speed)
+            if 0 < speed <= 20.0:
+                cv2.putText(frame, "{:.1f} km/h".format(speed),
+                            (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (0, 255, 255), 2)
+            elif speed > 20.0:
+                cv2.putText(frame,  "{:.1f} km/h".format(speed),
+                            (centroid[0], centroid[1]), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (0, 0, 255), 2)
+            else:
+                break
     # print(data_export)
     # if writer is not None:
     #     writer.write(frame)
 
     # Initializing writer
     # we do it only once from the very beginning when we get spatial dimensions of the frames
-    if writer is None:
-        # Constructing code of the codec to be used in the function VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # if writer is None:
+    #     # Constructing code of the codec to be used in the function VideoWriter
+    #     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-        # Writing current processed frame into the video file
-        writer = cv2.VideoWriter('result-20km.mp4', fourcc, 30,
-                                 (frame.shape[1], frame.shape[0]), True)
-    # Write processed current frame to the file
-    writer.write(frame)
+    #     # Writing current processed frame into the video file
+    #     writer = cv2.VideoWriter('result-highway.mp4', fourcc, 30,
+    #                              (frame.shape[1], frame.shape[0]), True)
+    # # Write processed current frame to the file
+    # writer.write(frame)
 
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1) & 0xFF
@@ -297,6 +288,6 @@ print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 # Save data to csv
 data_frame = pandas.DataFrame(data_export)
-data_frame.to_csv("20km.csv")
+data_frame.to_csv("highway.csv")
 
 cv2.destroyAllWindows()
